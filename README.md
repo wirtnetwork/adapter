@@ -24,8 +24,14 @@ In order to use this service your server must support `systemd` to control proce
 - Start and enable the service with `systemctl enable --now wirt-adapter`
 
 ## Development
+
 ### Continuous Testing
+
 Run `cargo watch -x test`
+
+### Logging
+
+To enable logging run the program with the environment variable `RUST_LOG=wirt::api`. For example `RUST_LOG=wirt::api cargo run`
 
 ## TODO
 

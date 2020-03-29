@@ -56,17 +56,11 @@ async fn main() {
     let update = warp::post()
         .and(warp::path("update"))
         .and(warp::body::json())
-        .map(|message: Message| format!("{}", message.config))
-        .with(&cors)
-        .with(&log);
+        .map(|message: Message| format!("{}", message.config));
 
-    let update_options = warp::options()
-        .and(warp::path("update"))
-        .map(warp::reply)
-        .with(&cors)
-        .with(&log);
+    let update_options = warp::options().and(warp::path("update")).map(warp::reply);
 
-    let routes = ok().or(update).or(update_options);
+    let routes = ok().or(update).or(update_options).with(log).with(cors);
 
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }

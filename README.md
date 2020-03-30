@@ -31,7 +31,16 @@ Run `cargo watch -x test`
 
 ### Logging
 
-To enable logging run the program with the environment variable `RUST_LOG=wirt::api`. For example `RUST_LOG=wirt::api cargo run`
+To enable logging run the program with the wanted environment variable.
+Check [env-logger](https://docs.rs/env_logger/0.7.1/env_logger/) for more information.
+
+#### Server logs
+
+`RUST_LOG=wirt::api`. For example `RUST_LOG=wirt::api cargo run`
+
+#### Info logs
+
+`RUST_LOG=info`
 
 ## TODO
 

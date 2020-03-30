@@ -12,3 +12,5 @@ warp = "0.2"
 serde = {version = "1", features = ["derive"]}
 log = "0.4"
 pretty_env_logger = "0.4"
+ed25519-dalek = {version = "1.0.0-pre.3", features = ["serde"]}
+base64 = "0.12.0"

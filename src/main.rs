@@ -40,8 +40,11 @@ struct Message {
 
 #[derive(Debug)]
 struct IncorrectSignature;
-
 impl reject::Reject for IncorrectSignature {}
+
+#[derive(Debug)]
+struct FailWritingConfig;
+impl reject::Reject for FailWritingConfig {}
 
 // JSON replies
 
@@ -64,9 +67,12 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
     } else if let Some(IncorrectSignature) = err.find() {
         code = StatusCode::UNAUTHORIZED;
         message = "NOT AUTHORIZED TO UPDATE CONFIGURATION";
+    } else if let Some(FailWritingConfig) = err.find() {
+        code = StatusCode::INTERNAL_SERVER_ERROR;
+        message = "COULD NOT WRITE CONFIG. PLEASE CHECK THE SERVER LOGS";
     } else {
         // We should have expected this... Just log and say its a 500
-        error!("unhandled rejection: {:?}", err);
+        error!("Unhandled rejection: {:?}", err);
         code = StatusCode::INTERNAL_SERVER_ERROR;
         message = "UNHANDLED_REJECTION";
     }
@@ -108,6 +114,12 @@ fn ok() -> impl Filter<Extract = (String,), Error = warp::Rejection> + Copy {
     warp::get().and(warp::path!("ok").map(|| format!("OK")))
 }
 
+fn write_config_file(config: String) -> IOResult<()> {
+    let mut file = File::open("/etc/wireguard/server.conf")?;
+    file.write_all(config.as_bytes())?;
+    Ok(())
+}
+
 fn update(
     public_key: PublicKey,
 ) -> impl Filter<Extract = (String,), Error = warp::Rejection> + Copy {
@@ -125,7 +137,16 @@ fn update(
                 Err(reject::custom(IncorrectSignature))
             }
         })
-        .map(|message: String| format!("Signature is valid"))
+        .and_then(|config: String| async {
+            let _ = match write_config_file(config) {
+                Ok(_) => return Ok(()),
+                Err(e) => {
+                    error!("Error when writing config file: {}", e);
+                    return Err(reject::custom(FailWritingConfig));
+                }
+            };
+        })
+        .map(|_| format!("Config updated"))
 }
 
 #[tokio::main]

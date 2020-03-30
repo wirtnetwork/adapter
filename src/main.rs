@@ -1,11 +1,12 @@
-use serde::{Deserialize, Serialize};
-use warp::{reject, Filter};
-
 use base64::decode;
 use ed25519_dalek::{PublicKey, Signature, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH};
+use serde::{Deserialize, Serialize};
+use std::convert::Infallible;
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::Result;
+use std::io::Result as IOResult;
+use warp::http::StatusCode;
+use warp::{reject, Filter, Rejection, Reply};
 
 use pretty_env_logger;
 
@@ -37,6 +38,46 @@ struct Message {
     signature: String,
 }
 
+#[derive(Debug)]
+struct IncorrectSignature;
+
+impl reject::Reject for IncorrectSignature {}
+
+// JSON replies
+
+/// An API error serializable to JSON.
+#[derive(Serialize)]
+struct ErrorMessage {
+    code: u16,
+    message: String,
+}
+
+// This function receives a `Rejection` and tries to return a custom
+// value, otherwise simply passes the rejection along.
+async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
+    let code;
+    let message;
+
+    if err.is_not_found() {
+        code = StatusCode::NOT_FOUND;
+        message = "NOT_FOUND";
+    } else if let Some(IncorrectSignature) = err.find() {
+        code = StatusCode::UNAUTHORIZED;
+        message = "NOT AUTHORIZED TO UPDATE CONFIGURATION";
+    } else {
+        // We should have expected this... Just log and say its a 500
+        error!("unhandled rejection: {:?}", err);
+        code = StatusCode::INTERNAL_SERVER_ERROR;
+        message = "UNHANDLED_REJECTION";
+    }
+
+    let json = warp::reply::json(&ErrorMessage {
+        code: code.as_u16(),
+        message: message.into(),
+    });
+    Ok(warp::reply::with_status(json, code))
+}
+
 fn decode_public_key_base64(public_key_base64: String) -> PublicKey {
     let mut raw_public_key_buffer = [0; PUBLIC_KEY_LENGTH];
     let raw_public_key_vector = base64::decode(&public_key_base64).unwrap();
@@ -55,7 +96,7 @@ fn decode_signature_base64(signature_base64: String) -> Signature {
     decoded_signature
 }
 
-fn load_key() -> Result<String> {
+fn load_key() -> IOResult<String> {
     // TODO: for testing generate a random file on disk for this
     let mut file = File::open("public.key")?;
     let mut contents = String::new();
@@ -73,15 +114,18 @@ fn update(
     warp::post()
         .and(warp::path("update"))
         .and(warp::body::json())
-        // The public key gets injected as a filter here
+        // TODO: try to extract the signature verification into its own Filter
         .and(warp::any().map(move || public_key.clone()))
-        .map(|message: Message, public_key: PublicKey| {
+        .and_then(|message: Message, public_key: PublicKey| async move {
             let signature = decode_signature_base64(message.signature);
-            let message = message.message.as_bytes();
-            format!("Signature is: {}", {
-                public_key.verify(&message, &signature).is_ok()
-            })
+            let message_as_bytes = message.message.as_bytes();
+            if public_key.verify(&message_as_bytes, &signature).is_ok() {
+                Ok(message.message)
+            } else {
+                Err(reject::custom(IncorrectSignature))
+            }
         })
+        .map(|message: String| format!("Signature is valid"))
 }
 
 #[tokio::main]
@@ -106,8 +150,9 @@ async fn main() {
         .or(update(public_key))
         .or(update_options)
         .with(log)
-        .with(cors);
-
+        .with(cors)
+        .recover(handle_rejection);
+    // TODO: It should be possible to configure the port and host
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }
 

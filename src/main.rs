@@ -2,9 +2,10 @@ use base64::decode;
 use ed25519_dalek::{PublicKey, Signature, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::prelude::*;
-use std::io::Result as IOResult;
+use std::io::{Error as IOError, ErrorKind as IOErrorKind, Result as IOResult};
+use std::process::Command;
 use warp::http::StatusCode;
 use warp::{reject, Filter, Rejection, Reply};
 
@@ -46,6 +47,10 @@ impl reject::Reject for IncorrectSignature {}
 struct FailWritingConfig;
 impl reject::Reject for FailWritingConfig {}
 
+#[derive(Debug)]
+struct FailRestartingWireguard;
+impl reject::Reject for FailRestartingWireguard {}
+
 // JSON replies
 
 /// An API error serializable to JSON.
@@ -63,13 +68,16 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
 
     if err.is_not_found() {
         code = StatusCode::NOT_FOUND;
-        message = "NOT_FOUND";
+        message = "";
     } else if let Some(IncorrectSignature) = err.find() {
         code = StatusCode::UNAUTHORIZED;
-        message = "NOT AUTHORIZED TO UPDATE CONFIGURATION";
+        message = "Not authorized to update configuration";
     } else if let Some(FailWritingConfig) = err.find() {
         code = StatusCode::INTERNAL_SERVER_ERROR;
-        message = "COULD NOT WRITE CONFIG. PLEASE CHECK THE SERVER LOGS";
+        message = "Could not write config. Please check the server logs";
+    } else if let Some(FailRestartingWireguard) = err.find() {
+        code = StatusCode::INTERNAL_SERVER_ERROR;
+        message = "Could not restart wireguard. Please check the server logs";
     } else {
         // We should have expected this... Just log and say its a 500
         error!("Unhandled rejection: {:?}", err);
@@ -115,9 +123,50 @@ fn ok() -> impl Filter<Extract = (String,), Error = warp::Rejection> + Copy {
 }
 
 fn write_config_file(config: String) -> IOResult<()> {
-    let mut file = File::open("/etc/wireguard/server.conf")?;
-    file.write_all(config.as_bytes())?;
-    Ok(())
+    // TODO: file location should be changeable
+    let file_name = "server.conf";
+
+    // TODO: change to File::with_options when it is stable
+    match OpenOptions::new().write(true).open(file_name) {
+        Ok(mut file) => {
+            file.write_all(config.as_bytes())?;
+            return Ok(());
+        }
+        Err(e) => match e.kind() {
+            IOErrorKind::NotFound => {
+                let mut file = File::create(file_name)?;
+                file.write_all(config.as_bytes())?;
+                Ok(())
+            }
+            _ => {
+                return Err(e);
+            }
+        },
+    }
+}
+
+fn restart_wireguard() -> IOResult<()> {
+    match Command::new("systemctl")
+        .arg("restart")
+        .arg("wg-quick@server")
+        .output()
+    {
+        Ok(output) => {
+            if output.status.success() {
+                return Ok(());
+            } else {
+                match String::from_utf8(output.stdout) {
+                    Ok(err) => {
+                        return Err(IOError::new(IOErrorKind::Other, err));
+                    }
+                    Err(e) => return Err(IOError::new(IOErrorKind::Other, e)),
+                }
+            }
+        }
+        Err(e) => {
+            return Err(e);
+        }
+    };
 }
 
 fn update(
@@ -138,8 +187,14 @@ fn update(
             }
         })
         .and_then(|config: String| async {
-            let _ = match write_config_file(config) {
-                Ok(_) => return Ok(()),
+            match write_config_file(config) {
+                Ok(_) => match restart_wireguard() {
+                    Ok(_) => return Ok(()),
+                    Err(e) => {
+                        error!("Error when restarting Wireguard: {}", e);
+                        return Err(reject::custom(FailRestartingWireguard));
+                    }
+                },
                 Err(e) => {
                     error!("Error when writing config file: {}", e);
                     return Err(reject::custom(FailWritingConfig));

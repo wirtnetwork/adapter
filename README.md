@@ -2,26 +2,48 @@
 
 This adapter is responsible for:
 
-- listening to incomming requests from a users Wirt application
+- listening to incomming requests from a users wirt application
 - automatically update the Wireguard configuration with new values
 - restart the Wireguard server.
 
 in this order.
 
-To guarantee that only the user who owns the server can update it, the Wirt app has to be connected to the server via key-based authentification.
+To guarantee that only the user who owns the server can update it, the wirt apps public key has to be provided when running the adapter, to verify payloads with the wirt apps signature.
+
+More info at https://wirt.network/docs/server
 
 ## Setup
 
-### Prerequisits
+### Prerequisites
 
 In order to use this service your server must support `systemd` to control processes.
 
-### HowTo
+### Installation
 
-- Create a new user that is allowed to change the config and restart the Server with `systemd`.
-- Place the server into `/usr/bin`.
-- Copy the example `systemd` config to `/etc/systemd/system/` and update it with the correct values
+#### Compilation
+
+- Install rust and cargo with https://rustup.rs/ or your preferred installation method.
+- `cargo build --release`
+- Place the `target/release/wirt-adapter` executable into `/usr/bin` or `/bin` on your server.
+
+### Using the wirt-adapter
+
+- Generate the public key from your [wirt](https://wirt.network/settings) webapp
+- Create a new user that is allowed to change the config at `/etc/wireguard/server.conf` and restart the Server with `systemd`.
+- Copy the example `wirt-adapter.service` config to `/etc/systemd/system/` and update it with the correct values
 - Start and enable the service with `systemctl enable --now wirt-adapter`
+
+## Contributing
+
+Simply check the `src/main.rs` file for **TODO** comments, to see what can be optimized in the code.
+
+If you have other ideas please open a PR for small improvements.
+
+For bigger changes, lets discuss these in an issue first.
+
+### Other TODOs
+
+- Testing needs to be done. One sample test to show how to test filters is implemented
 
 ## Development
 
@@ -41,15 +63,3 @@ Check [env-logger](https://docs.rs/env_logger/0.7.1/env_logger/) for more inform
 #### Info logs
 
 `RUST_LOG=info`
-
-## TODO
-
-- Write payload structs
-- Implement listening
-- Correctly identify a client
-- Parse input for validity
-- Update config
-- Restart server
-- Return status code
-- Write `systemd` service
-- Write developer docs

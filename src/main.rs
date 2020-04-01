@@ -215,7 +215,7 @@ async fn main() {
     let log = warp::log("wirt::api");
 
     let cors = warp::cors()
-        .allow_origin("http://localhost:8080")
+        .allow_origin("https://wirt.network")
         .allow_methods(vec!["POST"])
         .allow_header("content-type");
 

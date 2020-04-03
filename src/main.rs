@@ -127,21 +127,20 @@ fn write_config_file(config: String) -> IOResult<()> {
     let file_name = "/etc/wireguard/server.conf";
 
     // TODO: change to File::with_options when it is stable
-    match OpenOptions::new().write(true).open(file_name) {
+    match OpenOptions::new()
+        .read(true)
+        .write(true)
+        .truncate(true)
+        .create(true)
+        .open(file_name)
+    {
         Ok(mut file) => {
             file.write_all(config.as_bytes())?;
             return Ok(());
         }
-        Err(e) => match e.kind() {
-            IOErrorKind::NotFound => {
-                let mut file = File::create(file_name)?;
-                file.write_all(config.as_bytes())?;
-                Ok(())
-            }
-            _ => {
-                return Err(e);
-            }
-        },
+        Err(e) => {
+            return Err(e);
+        }
     }
 }
 
@@ -214,8 +213,10 @@ async fn main() {
     pretty_env_logger::init();
     let log = warp::log("wirt::api");
 
+    let allowed_origin: String =
+        env::var("ALLOWED_ORIGIN").unwrap_or("https://wirt.network".into());
     let cors = warp::cors()
-        .allow_origin("https://wirt.network")
+        .allow_origin(&allowed_origin[..])
         .allow_methods(vec!["POST"])
         .allow_header("content-type");
 

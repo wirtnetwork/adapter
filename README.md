@@ -33,6 +33,14 @@ In order to use this service your server must support `systemd` to control proce
 - Copy the example `wirt-adapter.service` config to `/etc/systemd/system/` and update it with the correct values
 - Start and enable the service with `systemctl enable --now wirt-adapter`
 
+### Configuring your wirt adapter instance
+
+The wirt adapter can be configured using environment variables:
+
+- **HOST**: the host address to listen on
+- **PORT**: the port to listen on
+- **PUBLIC_KEY**: Public key of your https://wirt.network app
+
 ## Contributing
 
 Simply check the `src/main.rs` file for **TODO** comments, to see what can be optimized in the code.

@@ -1,6 +1,6 @@
 [package]
 name = "wirt-adapter"
-version = "1.0.1"
+version = "1.1.0"
 authors = ["b-m-f <max@ehlers.berlin>"]
 edition = "2018"
 

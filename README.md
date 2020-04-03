@@ -4,7 +4,6 @@ This adapter is responsible for:
 
 - listening to incomming requests from a users wirt application
 - automatically update the Wireguard configuration with new values
-- restart the Wireguard server.
 
 in this order.
 
@@ -24,14 +23,21 @@ In order to use this service your server must support `systemd` to control proce
 
 - Install rust and cargo with https://rustup.rs/ or your preferred installation method.
 - `cargo build --release`
-- Place the `target/release/wirt-adapter` executable into `/usr/bin` or `/bin` on your server.
 
 ### Using the wirt-adapter
 
+- Place the `target/release/wirt-adapter` executable into `/usr/bin` or `/bin` on your server.
 - Generate the public key from your [wirt](https://wirt.network/settings) webapp
-- Create a new user that is allowed to change the config at `/etc/wireguard/server.conf` and restart the Server with `systemd`.
+- Create a new user that is allowed to change the config at `/etc/wireguard/server.conf`
 - Copy the example `wirt-adapter.service` config to `/etc/systemd/system/` and update it with the correct values
 - Start and enable the service with `systemctl enable --now wirt-adapter`
+
+#### Automatically restarting wireguard
+
+- install `inotify-tools`
+- Place the `wireguard-restarter.sh` script to `/usr/bin`
+- Copy the example `wireguard-restarter.service` config to `/etc/systemd/system/` and update it with the correct values
+- Start and enable the service with `systemctl enable --now wireguard-restarter`
 
 ### Configuring your wirt adapter instance
 

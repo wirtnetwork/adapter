@@ -3,7 +3,10 @@ Description=wirt.network adapter for automatic server updating
 Documentation=https://wirt.network/docs/server
 
 [Service]
+User=wirt-adapter
+Group=wirt-editors
 Type=simple
+Restart=always
 Environment="PUBLIC_KEY=$INSERT_YOUR_PUBLIC_KEY_FROM_WIRT"
 Environment="PORT=3030"
 Environment="HOST=0.0.0.0"

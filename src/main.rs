@@ -116,9 +116,8 @@ fn ok() -> impl Filter<Extract = (String,), Error = warp::Rejection> + Copy {
 }
 
 fn write_config_file(config: String) -> IOResult<()> {
-    let file_name = "/etc/wireguard/server.conf";
+    let file_name: String = env::var("CONFIG_PATH").unwrap_or("/etc/wireguard/server.conf".into());
 
-    // TODO: change to File::with_options when it is stable
     match OpenOptions::new()
         .read(true)
         .write(true)

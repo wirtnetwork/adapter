@@ -6,3 +6,6 @@ This removes the burden of having to give the user that is running the adapter t
 
 ## 1.2
 Adds HTTPS support
+
+## 1.3
+Allow configuring of the config path

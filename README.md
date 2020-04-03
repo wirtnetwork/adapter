@@ -51,6 +51,7 @@ The wirt adapter has to be configured using environment variables:
 - **PORT**: the port to listen on
 - **SSL_PEM_CERT**: SSL certificate
 - **SSL_KEY**: SSL private key for the certificate
+- **CONFIG_PATH**: path to your Wireguard configuration
 
 ## Contributing
 

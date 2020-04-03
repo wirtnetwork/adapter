@@ -41,11 +41,16 @@ In order to use this service your server must support `systemd` to control proce
 
 ### Configuring your wirt adapter instance
 
-The wirt adapter can be configured using environment variables:
+The wirt adapter has to be configured using environment variables:
+
+- **PUBLIC_KEY**: Public key of your https://wirt.network app
+
+#### Optional
 
 - **HOST**: the host address to listen on
 - **PORT**: the port to listen on
-- **PUBLIC_KEY**: Public key of your https://wirt.network app
+- **SSL_PEM_CERT**: SSL certificate
+- **SSL_KEY**: SSL private key for the certificate
 
 ## Contributing
 

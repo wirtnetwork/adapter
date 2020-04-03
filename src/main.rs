@@ -205,7 +205,28 @@ async fn main() {
 
     let host: [u8; 4] = [host[0], host[1], host[2], host[3]];
 
-    warp::serve(routes).run((host, port)).await
+    match env::var("SSL_PEM_CERT") {
+        Ok(cert_path) => match env::var("SSL_KEY") {
+            Ok(key_path) => {
+                info! {"Running server in HTTPS mode with certificate: {} and key: {}", cert_path, key_path};
+                warp::serve(routes)
+                    .tls()
+                    .cert_path(cert_path)
+                    .key_path(key_path)
+                    .run((host, port))
+                    .await
+            }
+            Err(e) => {
+                info! {"Running server in HTTP mode"};
+                warp::serve(routes).run((host, port)).await
+            }
+        },
+
+        Err(e) => {
+            info! {"Running server in HTTP mode"};
+            warp::serve(routes).run((host, port)).await
+        }
+    }
 }
 
 #[tokio::test]

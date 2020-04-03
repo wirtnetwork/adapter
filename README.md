@@ -26,7 +26,7 @@ In order to use this service your server must support `systemd` to control proce
 
 ### Using the wirt-adapter
 
-- Place the `target/release/wirt-adapter` executable into `/usr/bin` or `/bin` on your server.
+- Place the `target/release/wirt-adapter` executable from your compilation, or a release from the [release page](https://github.com/wirtnetwork/adapter/releases) into `/usr/bin` or `/bin` on your server.
 - Generate the public key from your [wirt](https://wirt.network/settings) webapp
 - Create a new user that is allowed to change the config at `/etc/wireguard/server.conf`
 - Copy the example `wirt-adapter.service` config to `/etc/systemd/system/` and update it with the correct values
@@ -35,7 +35,7 @@ In order to use this service your server must support `systemd` to control proce
 #### Automatically restarting wireguard
 
 - install `inotify-tools`
-- Place the `wireguard-restarter.sh` script to `/usr/bin`
+- Place the `wireguard-restarter.sh` script to `/usr/bin` and make it executable (`chmod +x /usr/bin/wireguard-restarter.sh`)
 - Copy the example `wireguard-restarter.service` config to `/etc/systemd/system/` and update it with the correct values
 - Start and enable the service with `systemctl enable --now wireguard-restarter`
 
@@ -44,13 +44,13 @@ In order to use this service your server must support `systemd` to control proce
 The wirt adapter has to be configured using environment variables:
 
 - **PUBLIC_KEY**: Public key of your https://wirt.network app
+- **SSL_PEM_CERT**: SSL certificate
+- **SSL_KEY**: SSL private key for the certificate
 
 #### Optional
 
 - **HOST**: the host address to listen on
 - **PORT**: the port to listen on
-- **SSL_PEM_CERT**: SSL certificate
-- **SSL_KEY**: SSL private key for the certificate
 - **CONFIG_PATH**: path to your Wireguard configuration
 
 ## Contributing

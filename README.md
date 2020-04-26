@@ -2,14 +2,14 @@
 
 This adapter is responsible for:
 
-- listening to incomming requests from a users wirt application
-- automatically update the Wireguard configuration with new values
+- listening to incomming requests from a users [WirtUI](https://wirt.network)
+- automatically update the WireGuard® configuration with new values
 
 in this order.
 
-To guarantee that only the user who owns the server can update it, the wirt apps public key has to be provided when running the adapter, to verify payloads with the wirt apps signature.
+To guarantee that only the user who owns the server can update it, the WirtUI public key has to be provided when running the adapter. With this it is possible verify incomming payloads.
 
-More info at https://wirt.network/docs/server
+More info at https://wirt.network/docs/setup
 
 ## Setup
 
@@ -27,7 +27,7 @@ In order to use this service your server must support `systemd` to control proce
 ### Using the wirt-adapter
 
 - Place the `target/release/wirt-adapter` executable from your compilation, or a release from the [release page](https://github.com/wirtnetwork/adapter/releases) into `/usr/bin` or `/bin` on your server.
-- Generate the public key from your [wirt](https://wirt.network/settings) webapp
+- Generate the public key from your [wirtUI](https://wirt.network/settings) webapp
 - Create a new user that is allowed to change the config at `/etc/wireguard/server.conf`
 - Copy the example `wirt-adapter.service` config to `/etc/systemd/system/` and update it with the correct values
 - Start and enable the service with `systemctl enable --now wirt-adapter`
@@ -69,11 +69,9 @@ For bigger changes, lets discuss these in an issue first.
 
 Always run the server with a supplied public key. You can generate a fake one with `wg genkey` or simply use `wKcOYzxjaQV03gIy0uBov+WgeR1U20XY8o63r1ljuUc=`.
 
-### Allow localhost in CORS
+### Localhost and CORS
 
-Make sure to send requests with the origin set to `https://wirt.network`.
-
-For example in curl: `curl -H "origin: https://wirt.network"`
+Make sure to send requests with the origin set to `https://wirt.network` or update the allowed origin with `ALLOWED_ORIGIN` as an environment variable.
 
 ### Continuous Testing
 
